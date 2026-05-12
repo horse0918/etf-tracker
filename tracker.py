@@ -2,8 +2,8 @@ import json
 import os
 import re
 import requests
-from bs4 import BeautifulSoup
 from datetime import datetime
+from playwright.sync_api import sync_playwright
 
 DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK_URL", "")
 
@@ -12,34 +12,41 @@ ETFS = {
     "00981A": "https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=49YTW",
 }
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-}
-
 
 def fetch_holdings(url: str) -> tuple[str, list[dict]]:
-    resp = requests.get(url, headers=HEADERS, timeout=30)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto(url, wait_until="networkidle", timeout=60000)
+        page.locator("#asset table").first.wait_for(timeout=15000)
 
-    asset_div = soup.find(id="asset")
-    date_match = re.search(r"資料日期:(\d{4}/\d{2}/\d{2})", asset_div.get_text())
-    date = date_match.group(1) if date_match else ""
+        date = page.evaluate("""() => {
+            const el = document.querySelector('#asset');
+            const m = el?.innerText?.match(/資料日期:(\\d{4}\\/\\d{2}\\/\\d{2})/);
+            return m ? m[1] : '';
+        }""")
 
-    holdings = []
-    for table in asset_div.find_all("table"):
-        headers = [th.get_text(strip=True) for th in table.find_all("th")]
-        if "股票代號" not in headers:
-            continue
-        for row in table.find("tbody").find_all("tr"):
-            cells = row.find_all("td")
-            if len(cells) >= 4:
-                holdings.append({
-                    "code": cells[0].get_text(strip=True),
-                    "name": cells[1].get_text(strip=True),
-                    "shares": cells[2].get_text(strip=True).replace(",", ""),
-                    "weight": cells[3].get_text(strip=True),
-                })
+        holdings = page.evaluate("""() => {
+            const results = [];
+            document.querySelectorAll('#asset table').forEach(table => {
+                const headers = Array.from(table.querySelectorAll('th')).map(h => h.innerText.trim());
+                if (!headers.includes('股票代號')) return;
+                table.querySelectorAll('tbody tr').forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length >= 4) {
+                        results.push({
+                            code: cells[0].innerText.trim(),
+                            name: cells[1].innerText.trim(),
+                            shares: cells[2].innerText.trim().replace(/,/g, ''),
+                            weight: cells[3].innerText.trim(),
+                        });
+                    }
+                });
+            });
+            return results;
+        }""")
+
+        browser.close()
     return date, holdings
 
 
