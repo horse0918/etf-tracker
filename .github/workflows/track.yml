@@ -12,13 +12,10 @@ concurrency:
 jobs:
   track:
     runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright/python:v1.51.0-noble
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
 
       - name: Restore previous holdings data
         uses: actions/cache@v4
@@ -29,15 +26,6 @@ jobs:
 
       - name: Install dependencies
         run: pip install requests playwright
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
-
-      - name: Install Playwright browsers
-        run: playwright install chromium --with-deps
 
       - name: Run tracker
         env:
