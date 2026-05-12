@@ -3,7 +3,7 @@ name: ETF Holdings Tracker
 on:
   schedule:
     - cron: "30 1 * * 1-5"  # 台灣時間 09:30 (UTC+8), 週一至週五
-  workflow_dispatch:          # 允許手動觸發
+  workflow_dispatch:
 
 concurrency:
   group: etf-tracker
@@ -12,17 +12,20 @@ concurrency:
 jobs:
   track:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Restore previous holdings data
+        uses: actions/cache@v4
+        with:
+          path: data/
+          key: etf-data-${{ runner.os }}
+          restore-keys: etf-data-
 
       - name: Install dependencies
         run: |
@@ -34,13 +37,8 @@ jobs:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: python tracker.py
 
-      - name: Commit updated data
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git rebase origin/main
-          git add data/
-          git diff --staged --quiet && exit 0
-          git commit -m "chore: update ETF holdings $(date +'%Y-%m-%d')"
-          git push
+      - name: Save holdings data
+        uses: actions/cache/save@v4
+        with:
+          path: data/
+          key: etf-data-${{ runner.os }}-${{ github.run_id }}
