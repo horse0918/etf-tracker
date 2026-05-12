@@ -8,8 +8,8 @@ from playwright.sync_api import sync_playwright
 DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK_URL", "")
 
 ETFS = {
-    "00403A": "https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=63YTW",
-    "00981A": "https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=49YTW",
+    "00403A": "https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=63YTW&tabName=basic",
+    "00981A": "https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=49YTW&tabName=basic",
 }
 
 
@@ -45,7 +45,7 @@ def fetch_all_holdings() -> dict[str, tuple[str, list[dict]] | Exception]:
             try:
                 page = browser.new_page()
                 page.goto(url, wait_until="domcontentloaded", timeout=60000)
-                page.locator("#asset table").first.wait_for(timeout=15000)
+                page.wait_for_selector("#asset table", state="attached", timeout=15000)
                 data = page.evaluate(JS_EXTRACT)
                 page.close()
                 results[etf_code] = (data["date"], data["holdings"])
