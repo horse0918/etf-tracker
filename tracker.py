@@ -13,41 +13,46 @@ ETFS = {
 }
 
 
-def fetch_holdings(url: str) -> tuple[str, list[dict]]:
+JS_EXTRACT = """() => {
+    const el = document.querySelector('#asset');
+    const m = el?.innerText?.match(/資料日期:(\\d{4}\\/\\d{2}\\/\\d{2})/);
+    const date = m ? m[1] : '';
+    const holdings = [];
+    el.querySelectorAll('table').forEach(table => {
+        const headers = Array.from(table.querySelectorAll('th')).map(h => h.innerText.trim());
+        if (!headers.includes('股票代號')) return;
+        table.querySelectorAll('tbody tr').forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 4) {
+                holdings.push({
+                    code: cells[0].innerText.trim(),
+                    name: cells[1].innerText.trim(),
+                    shares: cells[2].innerText.trim().replace(/,/g, ''),
+                    weight: cells[3].innerText.trim(),
+                });
+            }
+        });
+    });
+    return { date, holdings };
+}"""
+
+
+def fetch_all_holdings() -> dict[str, tuple[str, list[dict]] | Exception]:
+    results = {}
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        page = browser.new_page()
-        page.goto(url, wait_until="networkidle", timeout=60000)
-        page.locator("#asset table").first.wait_for(timeout=15000)
-
-        date = page.evaluate("""() => {
-            const el = document.querySelector('#asset');
-            const m = el?.innerText?.match(/資料日期:(\\d{4}\\/\\d{2}\\/\\d{2})/);
-            return m ? m[1] : '';
-        }""")
-
-        holdings = page.evaluate("""() => {
-            const results = [];
-            document.querySelectorAll('#asset table').forEach(table => {
-                const headers = Array.from(table.querySelectorAll('th')).map(h => h.innerText.trim());
-                if (!headers.includes('股票代號')) return;
-                table.querySelectorAll('tbody tr').forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    if (cells.length >= 4) {
-                        results.push({
-                            code: cells[0].innerText.trim(),
-                            name: cells[1].innerText.trim(),
-                            shares: cells[2].innerText.trim().replace(/,/g, ''),
-                            weight: cells[3].innerText.trim(),
-                        });
-                    }
-                });
-            });
-            return results;
-        }""")
-
+        for etf_code, url in ETFS.items():
+            try:
+                page = browser.new_page()
+                page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                page.locator("#asset table").first.wait_for(timeout=15000)
+                data = page.evaluate(JS_EXTRACT)
+                page.close()
+                results[etf_code] = (data["date"], data["holdings"])
+            except Exception as e:
+                results[etf_code] = e
         browser.close()
-    return date, holdings
+    return results
 
 
 def load_previous(etf_code: str) -> list[dict]:
@@ -109,9 +114,14 @@ def main():
     any_change = False
     full_msg = f"\n📊 ETF持股追蹤 {today}"
 
-    for etf_code, url in ETFS.items():
+    all_holdings = fetch_all_holdings()
+
+    for etf_code, result in all_holdings.items():
+        if isinstance(result, Exception):
+            full_msg += f"\n\n[{etf_code}] 抓取失敗: {result}"
+            continue
         try:
-            date, holdings = fetch_holdings(url)
+            date, holdings = result
             prev = load_previous(etf_code)
             save_today(etf_code, date, holdings)
 
@@ -127,7 +137,7 @@ def main():
                 full_msg += f"\n\n[{etf_code}] 無變動（共{len(holdings)}支）"
 
         except Exception as e:
-            full_msg += f"\n\n[{etf_code}] 抓取失敗: {e}"
+            full_msg += f"\n\n[{etf_code}] 處理失敗: {e}"
 
     if any_change or "首次" in full_msg or "失敗" in full_msg:
         notify(full_msg)
