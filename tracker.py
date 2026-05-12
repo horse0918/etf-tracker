@@ -10,6 +10,7 @@ DISCORD_WEBHOOK = os.environ.get("DISCORD_WEBHOOK_URL", "")
 ETFS = {
     "00403A": "https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=63YTW&tabName=basic",
     "00981A": "https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=49YTW&tabName=basic",
+    "00988A": "https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=61YTW&tabName=basic",
 }
 
 
