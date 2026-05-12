@@ -38,9 +38,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git rebase origin/main
           git add data/
           git diff --staged --quiet && exit 0
           git commit -m "chore: update ETF holdings $(date +'%Y-%m-%d')"
-          git fetch origin main
-          git rebase origin/main
           git push
