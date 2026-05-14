@@ -140,11 +140,7 @@ def main():
         except Exception as e:
             full_msg += f"\n\n[{etf_code}] 處理失敗: {e}"
 
-    if any_change or "首次" in full_msg or "失敗" in full_msg:
-        notify(full_msg)
-    else:
-        print(full_msg)
-        print("無變動，不推播。")
+notify(full_msg)
 
 
 if __name__ == "__main__":
