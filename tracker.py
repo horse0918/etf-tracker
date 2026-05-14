@@ -115,35 +115,32 @@ def notify(message: str):
     resp.raise_for_status()
 def main():
     today = datetime.now().strftime("%Y/%m/%d")
-    any_change = False
-    full_msg = f"\n📊 ETF持股追蹤 {today}"
-
-    all_holdings = fetch_all_holdings()
-
-    for etf_code, result in all_holdings.items():
-        if isinstance(result, Exception):
-            full_msg += f"\n\n[{etf_code}] 抓取失敗: {result}"
-            continue
-        try:
-            date, holdings = result
-            prev = load_previous(etf_code)
-            save_today(etf_code, date, holdings)
-
-            if not prev:
-                full_msg += f"\n\n[{etf_code}] 首次建立基準資料（{len(holdings)}支）"
-                continue
-
-            changes = diff_holdings(prev, holdings)
-            if changes:
-                any_change = True
-                full_msg += f"\n\n[{etf_code}] 資料日期:{date}\n{changes}"
-            else:
-                full_msg += f"\n\n[{etf_code}] 無變動（共{len(holdings)}支）"
-
-        except Exception as e:
-            full_msg += f"\n\n[{etf_code}] 處理失敗: {e}"
-
-    notify(full_msg)
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        for etf_code, url in ETFS.items():
+            msg = f"📊 [{etf_code}] ETF持股追蹤 {today}"
+            try:
+                page = browser.new_page()
+                page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                page.wait_for_selector("#asset table", state="attached", timeout=15000)
+                data = page.evaluate(JS_EXTRACT)
+                page.close()
+                date = data["date"]
+                holdings = data["holdings"]
+                prev = load_previous(etf_code)
+                save_today(etf_code, date, holdings)
+                if not prev:
+                    msg += f"\n首次建立基準資料（{len(holdings)}支）"
+                else:
+                    changes = diff_holdings(prev, holdings)
+                    if changes:
+                        msg += f"\n資料日期:{date}\n{changes}"
+                    else:
+                        msg += f"\n無變動（共{len(holdings)}支）"
+            except Exception as e:
+                msg += f"\n抓取失敗: {e}"
+            notify(msg)
+        browser.close()
 
 
 if __name__ == "__main__":
