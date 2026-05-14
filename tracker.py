@@ -140,7 +140,7 @@ def main():
         except Exception as e:
             full_msg += f"\n\n[{etf_code}] 處理失敗: {e}"
 
-notify(full_msg)
+    notify(full_msg)
 
 
 if __name__ == "__main__":
