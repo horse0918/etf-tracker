@@ -100,16 +100,19 @@ def diff_holdings(prev: list[dict], curr: list[dict]) -> str:
 
 
 def notify(message: str):
+    print(f"[NOTIFY] webhook set: {bool(DISCORD_WEBHOOK)}")
     if not DISCORD_WEBHOOK:
-        print("[NOTIFY]", message)
+        print("[NOTIFY] No webhook URL, printing message:")
+        print(message)
         return
-    requests.post(
-        DISCORD_WEBHOOK,
-        json={"content": f"```\n{message}\n```"},
-        timeout=10,
-    )
-
-
+    content = f"```\n{message}\n```"
+    if len(content) > 1990:
+        content = content[:1987] + "…```"
+    resp = requests.post(DISCORD_WEBHOOK, json={"content": content}, timeout=10)
+    print(f"[NOTIFY] Discord status: {resp.status_code}")
+    if resp.status_code != 204:
+        print(f"[NOTIFY] Discord response: {resp.text[:300]}")
+    resp.raise_for_status()
 def main():
     today = datetime.now().strftime("%Y/%m/%d")
     any_change = False
