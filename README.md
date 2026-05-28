@@ -1,59 +1,38 @@
-# ETF Holdings Tracker + Stock Research Wiki
+# Stock Research Wiki
 
-Tracks daily holdings changes for Taiwan ETFs and syncs them to a Notion research wiki.
+A personal stock market research knowledge base powered by Notion.
 
-## ETFs Tracked
+## Notion Wiki
 
-| Code | Description |
-|------|-------------|
-| 00403A | 野村優質高息ETF |
-| 00981A | 凱基優選高股息30ETF |
-| 00988A | 台灣永續高息ETF |
+Open the wiki: [Stock Research Wiki](https://www.notion.so/36e2c67180ea812aa388d904b172c66e)
 
-## How It Works
-
-1. **Daily scrape** (weekdays 20:00 Taiwan time): Scrapes ETF holdings from ezmoney.com.tw
-2. **Diff detection**: Compares to previous holdings, detects added/removed/changed positions
-3. **Discord alert**: Sends a change summary to Discord webhook
-4. **Notion sync**: Upserts all holdings into the Notion ETF Holdings database
-
-## Notion Wiki Structure
-
-The research wiki lives at [Stock Research Wiki](https://www.notion.so/36e2c67180ea812aa388d904b172c66e) and contains:
+### Databases
 
 | Database | Purpose |
 |----------|--------|
-| Industry Research | Sector-level analysis, macro trends, conviction ratings |
-| Company Research | Individual stock deep-dives, linked to industries |
-| ETF Holdings | Auto-synced daily from this tracker |
-| Market Notes | Dated observations and research memos |
+| **Industry Research** | Sector-level thesis, macro tailwinds/headwinds, conviction ratings |
+| **Company Research** | Individual stock deep-dives, linked to industries |
+| **Holdings** | Your portfolio — stocks, ETFs, bonds, REITs, crypto |
+| **Market Notes** | Dated research memos, earnings reactions, macro observations |
 
-## Setup
+## Research Workflow
 
-### Secrets Required
+1. Spot a sector trend → add to **Industry Research** with thesis + tailwinds/headwinds
+2. Find key companies in that sector → add to **Company Research**, link to the industry
+3. Buy a position → log it in **Holdings** (ticker, quantity, avg cost, asset type)
+4. Log ongoing observations in **Market Notes** (macro, earnings, policy changes)
 
-| Secret | Required | Purpose |
-|--------|----------|---------|
-| `DISCORD_WEBHOOK_URL` | Optional | Discord change alerts |
-| `NOTION_TOKEN` | Optional | Sync holdings to Notion wiki |
+## Holdings Database Fields
 
-### Getting a Notion Token
-
-1. Go to [notion.so/my-integrations](https://www.notion.so/my-integrations)
-2. Create a new integration
-3. Copy the **Internal Integration Token**
-4. Share the **Stock Research Wiki** page with your integration
-5. Add the token as `NOTION_TOKEN` in GitHub repository secrets
-
-## Running Locally
-
-```bash
-pip install -r requirements.txt
-python -m playwright install chromium
-
-# Run the ETF tracker
-python tracker.py
-
-# Sync to Notion (requires NOTION_TOKEN env var)
-NOTION_TOKEN=secret_xxx python notion_sync.py
-```
+| Field | Description |
+|-------|-------------|
+| Name | Company or fund name |
+| Ticker | Stock code (e.g. 2330, AAPL) |
+| Asset Type | Stock / ETF / Bond / REIT / Crypto / Cash |
+| Exchange | TWSE / TPEX / NYSE / NASDAQ / HKEX / Other |
+| Quantity | Number of shares/units held |
+| Avg Cost | Average cost per share |
+| Currency | TWD / USD / HKD |
+| Status | Active / Sold / Watchlist |
+| Industry | Linked to Industry Research entry |
+| Notes | Free-form notes |
