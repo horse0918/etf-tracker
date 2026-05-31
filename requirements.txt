@@ -1,6 +1,7 @@
 # Runtime (GitHub Actions)
 notion-client
-anthropicgoogle-auth
+anthropic
+google-auth
 google-auth-httplib2
 google-api-python-client
 
