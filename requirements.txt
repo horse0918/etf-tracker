@@ -1,2 +1,9 @@
-requests
-playwright
+# Runtime (GitHub Actions)
+notion-client
+anthropic
+google-auth
+google-auth-httplib2
+google-api-python-client
+
+# Local setup only (run setup_gmail_token.py once)
+google-auth-oauthlib
