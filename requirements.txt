@@ -1,2 +1,8 @@
-# Add dependencies here if you build automation scripts
+# Runtime (GitHub Actions)
 notion-client
+anthropicgoogle-auth
+google-auth-httplib2
+google-api-python-client
+
+# Local setup only (run setup_gmail_token.py once)
+google-auth-oauthlib
